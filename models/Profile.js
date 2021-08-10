@@ -3,7 +3,7 @@ const mongoose = require('mongoose')
 const ProfileSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'user' //Connects this schema to User.js model
+    ref: 'user' // Connects this schema to User.js model
   },
   company: {
     type: String
