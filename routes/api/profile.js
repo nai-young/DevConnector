@@ -11,7 +11,7 @@ const { check, validationResult } = require('express-validator')
 router.get('/me', auth, async (req, res) => {
   try {
     const profile = await Profile.findOne({ user: req.user.id }).populate('user', ['name', 'avatar'])
-
+    // .populate() adds the name and avatar to the user collection model
     if (!profile) {
       return res.status(400).json({ msg: 'There is no profile for this user.' })
     }
@@ -83,6 +83,61 @@ router.post('/', [
     profile = new Profile(userProfile)
     await profile.save()
     res.json(profile)
+  } catch (err) {
+    console.error(err.message)
+    res.status(500).send('Server Error')
+  }
+})
+
+// @route   GET /api/profile
+// @desc    Get all profiles
+// @access  Public
+
+router.get('/', async (req, res) => {
+  try {
+    const profiles = await Profile.find().populate('user', ['name', 'avatar'])
+    // .populate() adds the name and avatar to the User collection model
+    res.json(profiles)
+  } catch (err) {
+    console.error(err.message)
+    res.status(500).send('Server Error')
+  }
+})
+
+// @route   GET /api/profile/user/:user_id
+// @desc    Get profile by user id
+// @access  Public
+
+router.get('/user/:user_id', async (req, res) => {
+  try {
+    const profile = await Profile.findOne({ user: req.params.user_id }).populate('user', ['name', 'avatar'])
+    // .populate() adds the name and avatar to the User collection model
+
+    // If the user id is valid but there is not profile for this user
+    if (!profile) return res.status(400).json({ msg: 'There is no profile for this user.' })
+    res.json(profile)
+  } catch (err) {
+    console.error(err.message)
+    if (err.kind === 'ObjectId') { // If the user id is not valid (ex: more length characters)
+      return res.status(400).json({ msg: 'There is no profile for this user.' })
+    }
+    res.status(500).send('Server Error')
+  }
+})
+
+// @route   DELETE /api/profile
+// @desc    Delete profile, user & posts
+// @access  Private
+
+router.delete('/', auth, async (req, res) => {
+  try {
+    // TODO - Remove users posts
+    //  2nd line
+
+    // Remove profile
+    await Profile.findOneAndRemove({ user: req.user.id })
+
+    res.json(profiles)
   } catch (err) {
     console.error(err.message)
     res.status(500).send('Server Error')
