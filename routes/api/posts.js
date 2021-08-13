@@ -19,7 +19,6 @@ router.post('/', [
     return res.status(400).json({ errors: errors.array() })
   }
   try {
-    // Request the name and avatar from User database
     const user = await User.findById(req.user.id).select('-password')
     const newPost = new Post({
       text: req.body.text,
@@ -77,13 +76,57 @@ router.get('/:post', auth, async (req, res) => {
 router.delete('/:post_id', auth, async (req, res) => {
   try {
     const post = await Post.findById(req.params.post_id)
+    if (!post) {
+      return res.status(404).json({ msg: 'Post not found' })
+    }
 
-    // Check user
+    // Check if the user in the database is the same as the request
     if (post.user.toString() !== req.user.id) {
       return res.status(401).json({ msg: 'User not authorized' })
     }
-    await Post.findByIdAndRemove(req.params.post_id)
+    await post.remove()
     res.json({ msg: 'Post deleted' })
+  } catch (err) {
+    console.error(err.message)
+    res.status(500).send('Server Error')
+  }
+})
+
+// @route   PUT /api/posts/like/:post_id
+// @desc    Like a post
+// @access  Private
+
+router.put('/like/:post_id', auth, async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.post_id)
+
+    // Check if the post has already been liked
+    if (post.likes.filter(like => like.user.toString() === req.user.id).length > 0) {
+      return res.status(400).json({ msg: 'Post already liked' })
+    }
+    post.likes.unshift({ user: req.user.id })
+    await post.save()
+    res.json(post.likes)
+  } catch (err) {
+    console.error(err.message)
+    res.status(500).send('Server Error')
+  }
+})
+
+// @route   PUT /api/posts/unlike/:post_id
+// @desc    Dislike a post
+// @access  Private
+
+router.put('/unlike/:post_id', auth, async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.post_id)
+    // Check if the post has already been unliked
+    /* if (post.likes.filter(like => like.user.toString() === req.user.id).length > 0) {
+      return res.status(400).json({ msg: 'Post already liked' })
+    } */
+    post.likes.splice({ user: req.user.id })
+    await post.save()
+    res.json({ msg: 'Unliked' })
   } catch (err) {
     console.error(err.message)
     res.status(500).send('Server Error')
